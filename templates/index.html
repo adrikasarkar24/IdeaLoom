@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IdeaLoom</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Segoe UI', Georgia, serif;
+      background: linear-gradient(135deg, #0f0c29 0%, #302b63 45%, #6b3fa0 80%, #c97ecb 100%);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 60px 16px 80px;
+      overflow-x: hidden;
+    }
+
+    /* ── decorative background SVG layer ── */
+    .bg-deco {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    /* ── main card sits above decorations ── */
+    .card {
+      position: relative;
+      z-index: 1;
+      background: rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 48px 44px;
+      width: 100%;
+      max-width: 620px;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .brand h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: #f0e6ff;
+      letter-spacing: -0.5px;
+    }
+
+    .brand .loom-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #c084fc;
+      display: inline-block;
+      margin-bottom: 4px;
+      flex-shrink: 0;
+    }
+
+    .tagline {
+      font-size: 0.92rem;
+      color: rgba(224, 210, 255, 0.7);
+      margin-bottom: 38px;
+      letter-spacing: 0.3px;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(220, 200, 255, 0.8);
+      margin-bottom: 8px;
+    }
+
+    select,
+    input[type="text"] {
+      width: 100%;
+      padding: 13px 16px;
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 10px;
+      color: #f0e6ff;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c084fc' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 40px;
+      cursor: pointer;
+    }
+
+    select option {
+      background: #302b63;
+      color: #f0e6ff;
+    }
+
+    select:focus,
+    input[type="text"]:focus {
+      border-color: #c084fc;
+      background: rgba(255, 255, 255, 0.13);
+    }
+
+    input[type="text"]::placeholder {
+      color: rgba(200, 180, 240, 0.45);
+    }
+
+    .btn-generate {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(90deg, #7c3aed, #a855f7);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      letter-spacing: 0.4px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+
+    .btn-generate:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-generate:active {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .btn-generate:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .output-area {
+      margin-top: 36px;
+      min-height: 80px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 22px 20px;
+      display: none;
+    }
+
+    .output-area.visible {
+      display: block;
+    }
+
+    .output-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #c084fc;
+      margin-bottom: 12px;
+    }
+
+    .output-text {
+      font-size: 1rem;
+      color: #ede4ff;
+      line-height: 1.75;
+    }
+
+    .output-text.error {
+      color: #f9a8d4;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 32px 0 0;
+    }
+
+    footer {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 0.78rem;
+      color: rgba(200, 180, 255, 0.4);
+      letter-spacing: 0.3px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ░░ Decorative background illustrations ░░ -->
+  <div class="bg-deco" aria-hidden="true">
+    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+
+      <!-- ── Sun (top-left) ── -->
+      <g opacity="0.13" transform="translate(60, 55)">
+        <!-- rays -->
+        <line x1="28" y1="0"  x2="28" y2="10"  stroke="#fde68a" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="28" y1="46" x2="28" y2="56"  stroke="#fde68a" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="0"  y1="28" x2="10" y2="28"  stroke="#fde68a" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="46" y1="28" x2="56" y2="28"  stroke="#fde68a" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="8"  y1="8"  x2="15" y2="15"  stroke="#fde68a" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="41" y1="41" x2="48" y2="48"  stroke="#fde68a" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="48" y1="8"  x2="41" y2="15"  stroke="#fde68a" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="8"  y1="48" x2="15" y2="41"  stroke="#fde68a" stroke-width="2.2" stroke-linecap="round"/>
+        <!-- disc -->
+        <circle cx="28" cy="28" r="13" fill="none" stroke="#fde68a" stroke-width="2.5"/>
+      </g>
+
+      <!-- ── Crescent moon (top-right) ── -->
+      <g opacity="0.18" transform="translate(calc(100% - 110px), 38)">
+        <path d="M38 6 A26 26 0 1 0 38 54 A18 18 0 1 1 38 6 Z"
+              fill="#e0c9ff" stroke="none"/>
+      </g>
+
+      <!-- ── Stars scattered top area ── -->
+      <!-- 4-point star helper: each star is a small cross of rotated rects -->
+      <g opacity="0.22" fill="#f0e6ff">
+        <!-- star 1 -->
+        <g transform="translate(180, 30) rotate(15)">
+          <ellipse cx="0" cy="0" rx="1.2" ry="5"/>
+          <ellipse cx="0" cy="0" rx="5" ry="1.2"/>
+        </g>
+        <!-- star 2 -->
+        <g transform="translate(310, 18) rotate(-10)">
+          <ellipse cx="0" cy="0" rx="1" ry="4"/>
+          <ellipse cx="0" cy="0" rx="4" ry="1"/>
+        </g>
+        <!-- star 3 -->
+        <g transform="translate(500, 44) rotate(20)">
+          <ellipse cx="0" cy="0" rx="1.4" ry="6"/>
+          <ellipse cx="0" cy="0" rx="6" ry="1.4"/>
+        </g>
+        <!-- star 4 — right edge mid -->
+        <g transform="translate(calc(100% - 55px), 160) rotate(5)">
+          <ellipse cx="0" cy="0" rx="1" ry="4.5"/>
+          <ellipse cx="0" cy="0" rx="4.5" ry="1"/>
+        </g>
+        <!-- star 5 — bottom-right -->
+        <g transform="translate(calc(100% - 90px), calc(100% - 80px)) rotate(-20)">
+          <ellipse cx="0" cy="0" rx="1.3" ry="5.5"/>
+          <ellipse cx="0" cy="0" rx="5.5" ry="1.3"/>
+        </g>
+        <!-- star 6 — bottom-left -->
+        <g transform="translate(120, calc(100% - 60px)) rotate(30)">
+          <ellipse cx="0" cy="0" rx="1" ry="4"/>
+          <ellipse cx="0" cy="0" rx="4" ry="1"/>
+        </g>
+        <!-- tiny dots -->
+        <circle cx="250" cy="12"  r="1.8"/>
+        <circle cx="420" cy="25"  r="1.4"/>
+        <circle cx="90"  cy="200" r="1.6"/>
+        <circle cx="600" cy="130" r="1.5"/>
+      </g>
+
+      <!-- ── Mountain silhouette (bottom) ── -->
+      <g opacity="0.10">
+        <path d="M0 100% L0 calc(100% - 0px)
+                 M-10 100
+                 "
+        />
+        <!-- Absolute-coordinate mountain range across the bottom -->
+        <path fill="#b79cde"
+          d="M0,630
+             L80,480 L160,560 L260,390 L370,530 L450,420 L540,510
+             L620,370 L700,490 L780,440 L860,530 L940,400 L1040,520
+             L1100,470 L1200,560 L1300,480 L1400,580 L1500,500
+             L1600,630 Z"
+          transform="translate(0, calc(100vh - 630px))"
+        />
+        <!-- Second, darker/closer ridge -->
+        <path fill="#8b6dbf"
+          d="M0,630
+             L100,530 L200,580 L300,490 L420,560 L500,500 L600,555
+             L700,480 L820,545 L920,495 L1020,550 L1130,505 L1260,555
+             L1400,520 L1500,560 L1600,630 Z"
+          transform="translate(0, calc(100vh - 560px))"
+        />
+      </g>
+
+      <!-- ── Citrus slice (bottom-left) ── -->
+      <g opacity="0.14" transform="translate(30, calc(100% - 160px))">
+        <circle cx="42" cy="42" r="40" fill="none" stroke="#fbbf24" stroke-width="2"/>
+        <circle cx="42" cy="42" r="32" fill="none" stroke="#fbbf24" stroke-width="1.2"/>
+        <!-- segments -->
+        <line x1="42" y1="10" x2="42" y2="74" stroke="#fbbf24" stroke-width="1.2"/>
+        <line x1="10" y1="42" x2="74" y2="42" stroke="#fbbf24" stroke-width="1.2"/>
+        <line x1="19" y1="19" x2="65" y2="65" stroke="#fbbf24" stroke-width="1.2"/>
+        <line x1="65" y1="19" x2="19" y2="65" stroke="#fbbf24" stroke-width="1.2"/>
+        <circle cx="42" cy="42" r="5" fill="#fbbf24" opacity="0.5"/>
+      </g>
+
+      <!-- ── Second citrus (top-right corner, smaller) ── -->
+      <g opacity="0.10" transform="translate(calc(100% - 90px), calc(100% - 250px)) rotate(-25, 28, 28)">
+        <circle cx="28" cy="28" r="26" fill="none" stroke="#fb923c" stroke-width="1.8"/>
+        <circle cx="28" cy="28" r="20" fill="none" stroke="#fb923c" stroke-width="1"/>
+        <line x1="28" y1="4"  x2="28" y2="52" stroke="#fb923c" stroke-width="1"/>
+        <line x1="4"  y1="28" x2="52" y2="28" stroke="#fb923c" stroke-width="1"/>
+        <line x1="10" y1="10" x2="46" y2="46" stroke="#fb923c" stroke-width="1"/>
+        <line x1="46" y1="10" x2="10" y2="46" stroke="#fb923c" stroke-width="1"/>
+        <circle cx="28" cy="28" r="3.5" fill="#fb923c" opacity="0.5"/>
+      </g>
+
+      <!-- ── Seashell (right side, mid) ── -->
+      <g opacity="0.13" transform="translate(calc(100% - 80px), 45%) rotate(15, 30, 36)">
+        <!-- spiral shell outline -->
+        <path d="M30 60
+                 C10 55, 4 40, 12 28
+                 C18 18, 30 14, 38 20
+                 C46 26, 46 38, 38 44
+                 C32 48, 24 46, 22 40
+                 C20 34, 26 28, 32 30
+                 C36 32, 36 38, 32 40"
+              fill="none" stroke="#e9d5ff" stroke-width="1.8" stroke-linecap="round"/>
+        <!-- base fan lines -->
+        <line x1="30" y1="60" x2="10" y2="72" stroke="#e9d5ff" stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="30" y1="60" x2="20" y2="74" stroke="#e9d5ff" stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="30" y1="60" x2="30" y2="76" stroke="#e9d5ff" stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="30" y1="60" x2="40" y2="74" stroke="#e9d5ff" stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="30" y1="60" x2="50" y2="72" stroke="#e9d5ff" stroke-width="1.4" stroke-linecap="round"/>
+      </g>
+
+      <!-- ── Seashell (left side, upper-mid) ── -->
+      <g opacity="0.10" transform="translate(18, 38%) rotate(-20, 24, 30) scale(0.8)">
+        <path d="M30 60
+                 C10 55, 4 40, 12 28
+                 C18 18, 30 14, 38 20
+                 C46 26, 46 38, 38 44
+                 C32 48, 24 46, 22 40
+                 C20 34, 26 28, 32 30
+                 C36 32, 36 38, 32 40"
+              fill="none" stroke="#ddd6fe" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="30" y1="60" x2="10" y2="72" stroke="#ddd6fe" stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="30" y1="60" x2="20" y2="74" stroke="#ddd6fe" stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="30" y1="60" x2="30" y2="76" stroke="#ddd6fe" stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="30" y1="60" x2="40" y2="74" stroke="#ddd6fe" stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="30" y1="60" x2="50" y2="72" stroke="#ddd6fe" stroke-width="1.4" stroke-linecap="round"/>
+      </g>
+
+    </svg>
+  </div>
+  <!-- ░░ end decorations ░░ -->
+
+  <div class="card">
+    <div class="brand">
+      <h1>IdeaLoom</h1>
+      <span class="loom-dot"></span>
+    </div>
+    <p class="tagline">Weave your next story idea in seconds.</p>
+
+    <form id="ideaForm" novalidate>
+      <div class="form-group">
+        <label for="mood">Mood</label>
+        <select id="mood" name="mood" required>
+          <option value="" disabled selected>Select a mood…</option>
+          {% for mood in moods %}
+          <option value="{{ mood }}">{{ mood }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="theme">Theme</label>
+        <input
+          type="text"
+          id="theme"
+          name="theme"
+          placeholder="e.g. lost memories, forbidden knowledge, a second chance…"
+          autocomplete="off"
+          required
+        />
+      </div>
+
+      <button type="submit" class="btn-generate" id="generateBtn">
+        Generate Idea
+      </button>
+    </form>
+
+    <div class="output-area" id="outputArea">
+      <div class="output-label">Your Story Idea</div>
+      <p class="output-text" id="outputText"></p>
+    </div>
+
+    <div class="divider"></div>
+    <footer>IdeaLoom &mdash; let your imagination unspool.</footer>
+  </div>
+
+  <script>
+    const form = document.getElementById('ideaForm');
+    const btn  = document.getElementById('generateBtn');
+    const area = document.getElementById('outputArea');
+    const out  = document.getElementById('outputText');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const mood  = document.getElementById('mood').value;
+      const theme = document.getElementById('theme').value.trim();
+
+      if (!mood)  { showError('Please select a mood.'); return; }
+      if (!theme) { showError('Please enter a theme.'); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Weaving…';
+      area.classList.remove('visible');
+
+      try {
+        const res  = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mood, theme }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.error || 'Something went wrong. Try again.');
+        } else {
+          out.classList.remove('error');
+          out.textContent = data.idea;
+          area.classList.add('visible');
+        }
+      } catch (_) {
+        showError('Network error. Please check your connection.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate Idea';
+      }
+    });
+
+    function showError(msg) {
+      out.classList.add('error');
+      out.textContent = msg;
+      area.classList.add('visible');
+    }
+  </script>
+</body>
+</html>
